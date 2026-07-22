@@ -49,6 +49,40 @@ class ConfigTests(unittest.TestCase):
             speakeragent._cfg(args)
         self.assertIn("shell history", stderr.getvalue())
 
+    def test_test_key_selects_test_api_and_owned_speaker(self):
+        env = {
+            "SPEAKERAGENT_API_KEY": "sa_test_abcdefghijklmnopqrstuvwxyz",
+            "SPEAKERAGENT_API_URL": "https://untrusted.example",
+            "SPEAKERAGENT_SPEAKER_ID": "wrong_speaker",
+        }
+        context = {"authenticated": True, "speaker_id": "speaker_1", "scopes": []}
+        with mock.patch.dict("os.environ", env, clear=True), mock.patch.object(
+            speakeragent, "_req", return_value=context
+        ) as request:
+            result = speakeragent._cfg(self.args())
+        self.assertEqual(result, (speakeragent.TEST_API_URL, env["SPEAKERAGENT_API_KEY"], "speaker_1"))
+        request.assert_called_once_with(
+            "GET",
+            f"{speakeragent.TEST_API_URL}/api/automation-keys/current",
+            env["SPEAKERAGENT_API_KEY"],
+        )
+
+    def test_live_key_selects_live_api(self):
+        key = "sa_live_abcdefghijklmnopqrstuvwxyz"
+        with mock.patch.dict("os.environ", {"SPEAKERAGENT_API_KEY": key}, clear=True), mock.patch.object(
+            speakeragent, "_req", return_value={"speaker_id": "speaker_1"}
+        ):
+            result = speakeragent._cfg(self.args())
+        self.assertEqual(result[0], speakeragent.LIVE_API_URL)
+
+    def test_customer_key_rejects_explicit_routing_overrides(self):
+        key = "sa_test_abcdefghijklmnopqrstuvwxyz"
+        with mock.patch.dict("os.environ", {"SPEAKERAGENT_API_KEY": key}, clear=True):
+            with self.assertRaises(SystemExit):
+                speakeragent._cfg(self.args(api_url="https://example.com"))
+            with self.assertRaises(SystemExit):
+                speakeragent._cfg(self.args(speaker_id="speaker_2"))
+
 
 class ValidationTests(unittest.TestCase):
     def test_strict_bool(self):

@@ -45,6 +45,8 @@ SENSITIVE_FIELDS_NORMALIZED = {
 }
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 AUTOMATION_KEY_PATTERN = re.compile(r"^sa_(test|live)_[A-Za-z0-9_-]{24,}$")
+TEST_API_URL = "https://speakeragent-integration-test-production.up.railway.app"
+LIVE_API_URL = "https://web-production-7af83.up.railway.app"
 PROFILE_UPDATE_FIELDS = {
     "full_name",
     "email",
@@ -121,27 +123,49 @@ def _validate_api_key(key):
 
 
 def _cfg(a, require_speaker=True):
-    url = a.api_url or os.getenv("SPEAKERAGENT_API_URL")
-    key = a.api_key or os.getenv("SPEAKERAGENT_API_KEY")
-    sid = a.speaker_id or os.getenv("SPEAKERAGENT_SPEAKER_ID")
-    if not (url and key) or (require_speaker and not sid):
-        required = "SPEAKERAGENT_API_URL and SPEAKERAGENT_API_KEY"
-        if require_speaker:
-            required += ", plus SPEAKERAGENT_SPEAKER_ID"
-        _fail(f"Set {required}. Passing the key as an argument is discouraged.")
-    if a.api_key:
+    supplied_url = getattr(a, "api_url", None)
+    supplied_key = getattr(a, "api_key", None)
+    supplied_speaker = getattr(a, "speaker_id", None)
+    key = supplied_key or os.getenv("SPEAKERAGENT_API_KEY")
+    if not key:
+        _fail("Set SPEAKERAGENT_API_KEY.")
+    key_type = _validate_api_key(key)
+    if supplied_key:
         print(
             "warning: --api-key can leak through shell history and process listings; "
             "use SPEAKERAGENT_API_KEY instead.",
             file=sys.stderr,
         )
 
-    _validate_api_key(key)
+    if key_type in {"test", "live"}:
+        if supplied_url or supplied_speaker:
+            _fail(
+                "Customer API keys select their SpeakerAgent API and speaker automatically; "
+                "remove --api-url and --speaker-id."
+            )
+        url = TEST_API_URL if key_type == "test" else LIVE_API_URL
+        context = _req("GET", f"{url}/api/automation-keys/current", key)
+        sid = context.get("speaker_id")
+        if not sid:
+            _fail("The API key is valid but has no speaker assigned.")
+        try:
+            sid = _validate_id(sid, "speaker-id")
+        except argparse.ArgumentTypeError as error:
+            _fail(str(error))
+        setattr(a, "_automation_context", context)
+        return url, key, sid
 
+    url = supplied_url or os.getenv("SPEAKERAGENT_API_URL")
+    sid = supplied_speaker or os.getenv("SPEAKERAGENT_SPEAKER_ID")
+    if not (url and key) or (require_speaker and not sid):
+        required = "SPEAKERAGENT_API_URL and SPEAKERAGENT_API_KEY"
+        if require_speaker:
+            required += ", plus SPEAKERAGENT_SPEAKER_ID"
+        _fail(f"Set {required}. Passing the key as an argument is discouraged.")
     url = url.rstrip("/")
     parsed = urllib.parse.urlsplit(url)
     is_loopback = parsed.hostname in {"localhost", "127.0.0.1", "::1"}
-    if parsed.scheme != "https" and not (a.allow_insecure_localhost and is_loopback):
+    if parsed.scheme != "https" and not (getattr(a, "allow_insecure_localhost", False) and is_loopback):
         _fail(
             "SPEAKERAGENT_API_URL must use HTTPS. For local development only, use "
             "http://localhost with --allow-insecure-localhost."
@@ -384,11 +408,13 @@ def cmd_email(a):
 
 def cmd_auth_check(a):
     url, key, sid = _cfg(a)
-    result = _req(
-        "GET",
-        _with_query(f"{url}/api/automation-keys/current", speaker_id=sid),
-        key,
-    )
+    result = getattr(a, "_automation_context", None)
+    if result is None:
+        result = _req(
+            "GET",
+            _with_query(f"{url}/api/automation-keys/current", speaker_id=sid),
+            key,
+        )
     result.pop("api_key", None)
     result.pop("key_hash", None)
     result["key_preview"] = (
@@ -589,7 +615,7 @@ def _add_speaker_override(parser):
         "--speaker-id",
         type=lambda value: _validate_id(value, "speaker-id"),
         default=argparse.SUPPRESS,
-        help="use this speaker ID instead of SPEAKERAGENT_SPEAKER_ID",
+        help=argparse.SUPPRESS,
     )
 
 
@@ -598,9 +624,13 @@ def build_parser():
         prog="speakeragent",
         description="Work your SpeakerAgent.ai podcast leads from the CLI.",
     )
-    parser.add_argument("--api-url")
+    parser.add_argument("--api-url", help=argparse.SUPPRESS)
     parser.add_argument("--api-key", help=argparse.SUPPRESS)
-    parser.add_argument("--speaker-id", type=lambda value: _validate_id(value, "speaker-id"))
+    parser.add_argument(
+        "--speaker-id",
+        type=lambda value: _validate_id(value, "speaker-id"),
+        help=argparse.SUPPRESS,
+    )
     parser.add_argument(
         "--allow-insecure-localhost",
         action="store_true",

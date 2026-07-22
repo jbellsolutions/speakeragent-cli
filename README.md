@@ -49,22 +49,11 @@ python3 speakeragent.py show <id> --reveal-sensitive
 python3 speakeragent.py email <id> --reveal-sensitive
 ```
 
-### Reusing the CLI for multiple speakers
+### Speaker and API selection
 
-Set `SPEAKERAGENT_SPEAKER_ID` as the default speaker, then override it on any command without changing
-the source or API credentials:
-
-```bash
-export SPEAKERAGENT_SPEAKER_ID=speaker_default
-
-python3 speakeragent.py podcasts
-python3 speakeragent.py podcasts --speaker-id speaker_client_b
-python3 speakeragent.py show rec123 --speaker-id speaker_client_b
-python3 speakeragent.py status rec123 Contacted --speaker-id speaker_client_b
-```
-
-The `--speaker-id` value is included in every request. The API must still verify that the configured
-API key is authorized for that speaker.
+Customers configure only `SPEAKERAGENT_API_KEY`. A `sa_test_` key selects the SpeakerAgent test API,
+and a `sa_live_` key selects the production API. The CLI obtains the key-owned speaker ID from the
+protected introspection endpoint. Customer keys cannot override either value.
 
 ## Profile, matches, billing, and voice
 
@@ -129,9 +118,8 @@ selected speaker:
 
 ```bash
 export SPEAKERAGENT_API_KEY=sa_test_replace_with_complete_key
-export SPEAKERAGENT_SPEAKER_ID=speaker_test
 
-python3 speakeragent.py auth check
+speakeragent auth check
 ```
 
 `auth check` calls the API's protected automation-key introspection endpoint. It never prints the key.
@@ -156,19 +144,19 @@ skill**, and the **API documentation**.
 
 ## Auth
 
-All API requests are authenticated two ways at once:
+Customer automation keys are bound to a speaker and environment by SpeakerAgent:
 
 | What | How | Notes |
 |------|-----|-------|
-| **API key** | `X-API-Key: <key>` request header | A single per-deployment key. Get it from your SpeakerAgent admin. |
-| **Tenant** | `speaker_id=<id>` query param | Identifies whose data you're reading. Find it via `POST /api/auth/login`. |
+| **API key** | `X-API-Key: <key>` request header | Create it on the website's API / CLI page. |
+| **Tenant** | Derived from the key | The CLI obtains it from protected key introspection. |
 
 ```bash
 curl -H "X-API-Key: $SPEAKERAGENT_API_KEY" \
-  "$SPEAKERAGENT_API_URL/api/podcasts?speaker_id=$SPEAKERAGENT_SPEAKER_ID"
+  "https://web-production-7af83.up.railway.app/api/automation-keys/current"
 ```
 
-**Base URL:** `https://api-production-d34e.up.railway.app`  *(set as `SPEAKERAGENT_API_URL`)*
+The CLI pins `sa_test_` and `sa_live_` keys to approved SpeakerAgent API hosts automatically.
 
 > 🔒 Never commit your `X-API-Key`. Keep it in an env var / secret store. The key is an
 > account-level credential — treat it like a password.
@@ -182,9 +170,7 @@ curl -H "X-API-Key: $SPEAKERAGENT_API_KEY" \
 ## Quickstart (CLI)
 
 ```bash
-export SPEAKERAGENT_API_URL=https://api-production-d34e.up.railway.app
 export SPEAKERAGENT_API_KEY=<your-key>
-export SPEAKERAGENT_SPEAKER_ID=<your-speaker-id>
 
 python3 speakeragent.py podcasts                 # list your podcast leads
 python3 speakeragent.py refresh <id>             # enrich the host + draft the pitch email
@@ -291,8 +277,8 @@ speakeragent.py email <id>                        # print the pitch + a Gmail co
 speakeragent.py status <id> <New|Contacted|Replied|Booked|Passed>
 speakeragent.py saved <id> <true|false>
 ```
-Auth comes from `SPEAKERAGENT_API_URL` / `SPEAKERAGENT_API_KEY` / `SPEAKERAGENT_SPEAKER_ID`
-(or `--api-url` / `--api-key` / `--speaker-id` flags). Stdlib-only Python 3 — no install.
+Customer authentication comes from `SPEAKERAGENT_API_KEY`. The CLI selects the approved API and
+key-owned speaker automatically.
 
 ## Agent skill
 `SKILL.md` registers this as a Claude Code skill (`/speakeragent`): "work your SpeakerAgent

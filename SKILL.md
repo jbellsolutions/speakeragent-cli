@@ -11,9 +11,7 @@ retired → 410; **Podcasts** is the live feature.) Multi-tenant by `speaker_id`
 
 ## Setup
 ```bash
-export SPEAKERAGENT_API_URL=https://api-production-d34e.up.railway.app  # your SpeakerAgent API base
-export SPEAKERAGENT_API_KEY=...                                        # your deployment X-API-Key
-export SPEAKERAGENT_SPEAKER_ID=...                                     # your speaker account id
+export SPEAKERAGENT_API_KEY=sa_live_...  # key from the website's API / CLI page
 ```
 
 ## Commands
