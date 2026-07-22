@@ -1,0 +1,16 @@
+{
+  "samples": [
+    {
+      "sample_text": "Security does not need to be dramatic. Start with the systems that hold customer data, decide who truly needs access, and make recovery a routine you have already practiced.",
+      "source_type": "linkedin",
+      "label": "LinkedIn post",
+      "is_own_writing_confirmed": true
+    },
+    {
+      "sample_text": "The goal is not perfect protection. It is making the most likely incidents less damaging and much easier to recover from.",
+      "source_type": "email",
+      "label": "Client email",
+      "is_own_writing_confirmed": true
+    }
+  ]
+}

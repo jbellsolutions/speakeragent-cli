@@ -1,0 +1,21 @@
+{
+  "full_name": "Jane Smith",
+  "email": "jane@example.com",
+  "tagline": "Cybersecurity for growing businesses",
+  "bio": "Jane helps small businesses protect customer data and prepare for security incidents.",
+  "topics": [
+    {
+      "title": "Practical Cybersecurity for Small Businesses",
+      "abstract": "A practical approach to reducing security risk without an enterprise budget.",
+      "audience": "Founders and small-business owners"
+    }
+  ],
+  "target_industries": [
+    "Technology",
+    "Professional Services"
+  ],
+  "location": "Austin, TX",
+  "website": "https://example.com",
+  "credentials": "CISSP",
+  "linkedin": "https://www.linkedin.com/in/example"
+}

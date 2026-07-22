@@ -1,5 +1,128 @@
 # SpeakerAgent API + CLI
 
+## Current CLI security controls
+
+The CLI continues to use the existing `X-API-Key` plus `speaker_id` API contract. The current
+hardening release adds these client-side protections:
+
+- authenticated requests require HTTPS;
+- HTTP is allowed only for an explicit localhost development session using
+  `--allow-insecure-localhost`;
+- authenticated redirects to another scheme or host are blocked;
+- every podcast request, including record reads and writes, includes `speaker_id`;
+- `--api-key` is hidden and deprecated because arguments can leak through shell history and process
+  listings; use the `SPEAKERAGENT_API_KEY` environment variable;
+- IDs, status values, triage values, and Booleans are validated locally;
+- contact information and pitch content are redacted unless `--reveal-sensitive` is supplied;
+- error messages omit query parameters and include a request ID;
+- Gmail compose URLs containing private pitch content are no longer printed.
+
+These controls do not replace backend authorization. For every record request, the API must query by
+both record ID and `speaker_id`, and verify that the API key is allowed to access that speaker. The
+CLI cannot enforce ownership if the server ignores this check.
+
+Sensitive output now requires an explicit flag:
+
+```bash
+python3 speakeragent.py show <id> --reveal-sensitive
+python3 speakeragent.py email <id> --reveal-sensitive
+```
+
+### Reusing the CLI for multiple speakers
+
+Set `SPEAKERAGENT_SPEAKER_ID` as the default speaker, then override it on any command without changing
+the source or API credentials:
+
+```bash
+export SPEAKERAGENT_SPEAKER_ID=speaker_default
+
+python3 speakeragent.py podcasts
+python3 speakeragent.py podcasts --speaker-id speaker_client_b
+python3 speakeragent.py show rec123 --speaker-id speaker_client_b
+python3 speakeragent.py status rec123 Contacted --speaker-id speaker_client_b
+```
+
+The `--speaker-id` value is included in every request. The API must still verify that the configured
+API key is authorized for that speaker.
+
+## Profile, matches, billing, and voice
+
+Create a speaker account from a JSON profile. Passwords are deliberately not accepted in files or
+arguments. The new account may require billing/account setup on the website before it can run a scout:
+
+```bash
+python3 speakeragent.py profile create --from examples/profile.example.json
+```
+
+View or partially update an existing speaker:
+
+```bash
+python3 speakeragent.py profile show
+python3 speakeragent.py profile show --reveal-sensitive
+python3 speakeragent.py profile edit --from examples/profile.example.json
+```
+
+Generate new podcast matches. This consumes one monthly scout run, so confirmation is required. Use
+`--wait` to poll progress until the backend is no longer running:
+
+```bash
+python3 speakeragent.py matches generate
+python3 speakeragent.py matches generate --wait --yes
+python3 speakeragent.py matches status
+```
+
+Show subscription state and monthly scout allowance (the backend does not currently expose a generic
+credit ledger):
+
+```bash
+python3 speakeragent.py billing show
+```
+
+Save writing samples, monitor voice extraction, and generate a synthetic preview. Saving samples
+replaces the current active set and requires an explicit authorship attestation:
+
+```bash
+python3 speakeragent.py voice samples list
+python3 speakeragent.py voice samples list --reveal-sensitive
+python3 speakeragent.py voice samples set --from examples/voice-samples.example.json \
+  --confirm-own-writing
+python3 speakeragent.py voice status
+python3 speakeragent.py voice preview
+```
+
+Under the current shared-key model, these commands are for trusted/internal operators. The API key
+must be bound server-side to the speaker IDs it may access before broad customer distribution.
+
+## Test and production automation keys
+
+The CLI accepts the existing Railway key during migration as well as future customer-specific keys:
+
+```text
+sa_test_...   integration and customer testing
+sa_live_...   production customer automation
+```
+
+All key types continue to use the `X-API-Key` header, so no command changes when the backend begins
+issuing customer keys. Configure the complete secret through the environment and verify access to the
+selected speaker:
+
+```bash
+export SPEAKERAGENT_API_KEY=sa_test_replace_with_complete_key
+export SPEAKERAGENT_SPEAKER_ID=speaker_test
+
+python3 speakeragent.py auth check
+```
+
+`auth check` calls the API's protected automation-key introspection endpoint. It never prints the key.
+Customer keys report `speaker_scope_verified: true` only after the backend verifies the stored key,
+status, environment, speaker binding, and scopes. The legacy Railway key remains supported for
+internal traffic and reports that speaker scope is not verified. A malformed `sa_test_` or `sa_live_`
+key is rejected before any request.
+
+Do not use test keys against production data, commit them to Git, or place them directly in command
+arguments. The backend remains responsible for validating key status, expiry, speaker restrictions,
+and scopes.
+
 Pull and action your **SpeakerAgent.ai** podcast leads — programmatically (CLI / any agent) or
 over the REST API. SpeakerAgent finds podcasts you'd be a great guest on, scores them, and (on
 demand) enriches the host + drafts your outreach email. This repo is the **CLI**, the **agent

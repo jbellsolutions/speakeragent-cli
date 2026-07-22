@@ -28,6 +28,26 @@ python3 $CLI status <id> <New|Contacted|Replied|Booked|Passed>
 python3 $CLI saved <id> <true|false>                         # ♥ save / unsave
 ```
 
+## Additional workflow commands
+
+```bash
+python3 $CLI auth check                                      # verify key + speaker access
+python3 $CLI profile show [--reveal-sensitive]
+python3 $CLI profile create --from <profile.json>
+python3 $CLI profile edit --from <profile.json>
+python3 $CLI matches generate [--persona-id <id>] [--wait] [--yes]
+python3 $CLI matches status
+python3 $CLI billing show
+python3 $CLI voice samples list [--reveal-sensitive]
+python3 $CLI voice samples set --from <samples.json> --confirm-own-writing [--yes]
+python3 $CLI voice status
+python3 $CLI voice preview
+```
+
+Match generation consumes one monthly scout run. Saving voice samples replaces the active sample set,
+requires an authorship attestation, and starts asynchronous extraction. Billing is read-only and
+reports the subscription plus monthly scout allowance; there is no generic credit ledger today.
+
 ## Notes
 - **Raw podcasts have no Contact Email / Email Draft until `refresh` runs** — refresh enriches the
   host + drafts the outreach email; then `email <id>` has content.
