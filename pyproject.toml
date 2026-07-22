@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speakeragent-cli"
+version = "0.1.0"
+description = "Command-line client for the SpeakerAgent API"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "SpeakerAgent" }]
+keywords = ["speakeragent", "podcasts", "speakers", "cli", "automation"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12"
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://speakeragent.ai"
+Repository = "https://github.com/jbellsolutions/speakeragent-cli"
+Issues = "https://github.com/jbellsolutions/speakeragent-cli/issues"
+
+[project.scripts]
+speakeragent = "speakeragent:main"
+
+[tool.setuptools]
+py-modules = ["speakeragent"]

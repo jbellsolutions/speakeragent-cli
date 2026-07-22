@@ -1,5 +1,26 @@
 # SpeakerAgent API + CLI
 
+## Install from GitHub
+
+Install the current release directly from GitHub:
+
+```bash
+python -m pip install "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+```
+
+Then run the CLI from any directory:
+
+```bash
+speakeragent --help
+speakeragent auth check
+```
+
+Upgrade to the latest commit on the branch with:
+
+```bash
+python -m pip install --upgrade --force-reinstall "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+```
+
 ## Current CLI security controls
 
 The CLI continues to use the existing `X-API-Key` plus `speaker_id` API contract. The current
