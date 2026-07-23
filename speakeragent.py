@@ -46,7 +46,8 @@ SENSITIVE_FIELDS_NORMALIZED = {
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 AUTOMATION_KEY_PATTERN = re.compile(r"^sa_(test|live)_[A-Za-z0-9_-]{24,}$")
 TEST_API_URL = "https://speakeragent-integration-test-production.up.railway.app"
-LIVE_API_URL = "https://web-production-7af83.up.railway.app"
+# Temporary alpha behavior: live-prefixed customer keys still use the test API.
+LIVE_API_URL = TEST_API_URL
 PROFILE_UPDATE_FIELDS = {
     "full_name",
     "email",

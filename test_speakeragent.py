@@ -74,6 +74,7 @@ class ConfigTests(unittest.TestCase):
         ):
             result = speakeragent._cfg(self.args())
         self.assertEqual(result[0], speakeragent.LIVE_API_URL)
+        self.assertEqual(result[0], speakeragent.TEST_API_URL)
 
     def test_customer_key_rejects_explicit_routing_overrides(self):
         key = "sa_test_abcdefghijklmnopqrstuvwxyz"

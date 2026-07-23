@@ -51,8 +51,8 @@ python3 speakeragent.py email <id> --reveal-sensitive
 
 ### Speaker and API selection
 
-Customers configure only `SPEAKERAGENT_API_KEY`. A `sa_test_` key selects the SpeakerAgent test API,
-and a `sa_live_` key selects the production API. The CLI obtains the key-owned speaker ID from the
+Customers configure only `SPEAKERAGENT_API_KEY`. During the current alpha rollout, both `sa_test_`
+and `sa_live_` keys select the SpeakerAgent test API. The CLI obtains the key-owned speaker ID from the
 protected introspection endpoint. Customer keys cannot override either value.
 
 ## Profile, matches, billing, and voice
@@ -109,7 +109,7 @@ The CLI accepts the existing Railway key during migration as well as future cust
 
 ```text
 sa_test_...   integration and customer testing
-sa_live_...   production customer automation
+sa_live_...   live-prefixed automation (temporarily routed to the test API)
 ```
 
 All key types continue to use the `X-API-Key` header, so no command changes when the backend begins
