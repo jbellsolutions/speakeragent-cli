@@ -281,8 +281,22 @@ Customer authentication comes from `SPEAKERAGENT_API_KEY`. The CLI selects the a
 key-owned speaker automatically.
 
 ## Agent skill
-`SKILL.md` registers this as a Claude Code skill (`/speakeragent`): "work your SpeakerAgent
-podcast leads." Drop the folder in `~/.claude/skills/speakeragent/`.
+
+`SKILL.md` registers this repository as a Claude Code skill. Install the CLI first, then clone the
+repository into Claude's skills directory:
+
+```bash
+python -m pip install "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+git clone --branch codex/cli-security-updates \
+  https://github.com/jbellsolutions/speakeragent-cli.git \
+  ~/.claude/skills/speakeragent
+```
+
+Restart Claude Code, set `SPEAKERAGENT_API_KEY` in its execution environment, and ask naturally:
+
+```text
+Use SpeakerAgent to review my New podcast matches and summarize the five strongest opportunities.
+```
 
 ## Notes
 - **No emails are sent by the API** on a status change — send from your own address using the
