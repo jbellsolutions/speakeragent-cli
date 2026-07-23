@@ -8,6 +8,19 @@ description: Manage a customer's SpeakerAgent podcast-guesting pipeline through 
 Use the installed `speakeragent` command. Do not call private backend endpoints directly when the CLI
 supports the requested action.
 
+## Install or upgrade the CLI
+
+Before first use in a new environment, or when the installed CLI may be outdated, upgrade pip and
+install the latest approved CLI build from GitHub:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install --upgrade --force-reinstall "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+speakeragent --help
+```
+
+Stop if installation or the verification command fails. Do not install an unapproved fork or branch.
+
 ## Authenticate
 
 Require `SPEAKERAGENT_API_KEY` in the execution environment. Never ask the user to paste the key into
