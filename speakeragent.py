@@ -427,6 +427,11 @@ def cmd_email(a):
 
 def cmd_auth_check(a):
     url, key, sid = _cfg(a, require_speaker=False)
+    if _api_key_type(key) == "legacy" and not sid:
+        _fail(
+            "Set SPEAKERAGENT_API_URL and SPEAKERAGENT_API_KEY, plus "
+            "SPEAKERAGENT_SPEAKER_ID. Passing the key as an argument is discouraged."
+        )
     result = getattr(a, "_automation_context", None)
     if result is None:
         result = _req(

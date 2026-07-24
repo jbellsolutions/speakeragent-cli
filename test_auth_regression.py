@@ -78,6 +78,15 @@ class AuthCheckTests(unittest.TestCase):
         self.assertIn('"key_preview": "legacy (hidden)"', output.getvalue())
         self.assertNotIn(LEGACY_KEY, output.getvalue())
 
+    def test_auth_check_keeps_legacy_speaker_requirement_local(self):
+        with mock.patch.object(
+            speakeragent, "_cfg", return_value=(CFG[0], LEGACY_KEY, None)
+        ), mock.patch.object(speakeragent, "_req") as request:
+            with self.assertRaises(SystemExit) as raised:
+                speakeragent.cmd_auth_check(SimpleNamespace())
+        self.assertIn("SPEAKERAGENT_SPEAKER_ID", str(raised.exception))
+        request.assert_not_called()
+
     def test_agency_speaker_listing_uses_scoped_endpoint(self):
         output = io.StringIO()
         args = SimpleNamespace(json=True)
