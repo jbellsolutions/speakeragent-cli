@@ -78,6 +78,30 @@ class AuthCheckTests(unittest.TestCase):
         self.assertIn('"key_preview": "legacy (hidden)"', output.getvalue())
         self.assertNotIn(LEGACY_KEY, output.getvalue())
 
+    def test_agency_speaker_listing_uses_scoped_endpoint(self):
+        output = io.StringIO()
+        args = SimpleNamespace(json=True)
+
+        def config(value, require_speaker=True):
+            value._automation_context = {"authorization_model": "agency_key", "partner_id": 7}
+            return CFG[0], TEST_KEY, None
+
+        payload = {
+            "partner_id": 7,
+            "count": 1,
+            "speakers": [{"speaker_id": "speaker_1", "full_name": "Speaker One", "status": "active"}],
+        }
+        with mock.patch.object(speakeragent, "_cfg", side_effect=config), mock.patch.object(
+            speakeragent, "_req", return_value=payload
+        ) as request, redirect_stdout(output):
+            speakeragent.cmd_speakers_list(args)
+        request.assert_called_once_with(
+            "GET",
+            "https://api.example.com/api/automation-keys/current/speakers",
+            TEST_KEY,
+        )
+        self.assertEqual(json.loads(output.getvalue()), payload)
+
     def test_server_error_cannot_echo_full_key(self):
         error_body = io.BytesIO(
             json.dumps({"detail": f"invalid API key {TEST_KEY}"}).encode("utf-8")

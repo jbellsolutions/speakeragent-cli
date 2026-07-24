@@ -5,7 +5,7 @@
 Install the current release directly from GitHub:
 
 ```bash
-python -m pip install "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+python -m pip install "git+https://github.com/jbellsolutions/speakeragent-cli.git@cli-agency-release"
 ```
 
 Then run the CLI from any directory:
@@ -18,7 +18,7 @@ speakeragent auth check
 Upgrade to the latest commit on the branch with:
 
 ```bash
-python -m pip install --upgrade --force-reinstall "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+python -m pip install --upgrade --force-reinstall "git+https://github.com/jbellsolutions/speakeragent-cli.git@cli-agency-release"
 ```
 
 ## Current CLI security controls
@@ -56,6 +56,22 @@ and `sa_live_` keys select the SpeakerAgent test API. The CLI obtains the key-ow
 protected introspection endpoint. Customer keys cannot override either value.
 
 ## Profile, matches, billing, and voice
+
+### Agency keys and purchased seats
+
+An agency-owned key can work across the agency's current active paid speaker seats. Discover the
+authorized speakers first, then select one explicitly for each speaker operation:
+
+```bash
+speakeragent speakers list
+speakeragent speakers list --json
+speakeragent podcasts --speaker-id anthony_dagostino_f58c6e84 --status New
+speakeragent matches status --speaker-id anthony_dagostino_f58c6e84
+```
+
+Alternatively, set `SPEAKERAGENT_SPEAKER_ID` for a dedicated automation process. The backend checks
+the agency subscription, active seat membership, and command scope on every request. Personal B2C
+keys continue to select their single owned speaker automatically and reject speaker overrides.
 
 Create a speaker account from a JSON profile. Passwords are deliberately not accepted in files or
 arguments. The new account may require billing/account setup on the website before it can run a scout:
@@ -286,7 +302,7 @@ key-owned speaker automatically.
 repository into Claude's skills directory:
 
 ```bash
-python -m pip install "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+python -m pip install "git+https://github.com/jbellsolutions/speakeragent-cli.git@cli-agency-release"
 git clone --branch codex/cli-security-updates \
   https://github.com/jbellsolutions/speakeragent-cli.git \
   ~/.claude/skills/speakeragent

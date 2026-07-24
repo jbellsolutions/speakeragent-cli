@@ -81,8 +81,38 @@ class ConfigTests(unittest.TestCase):
         with mock.patch.dict("os.environ", {"SPEAKERAGENT_API_KEY": key}, clear=True):
             with self.assertRaises(SystemExit):
                 speakeragent._cfg(self.args(api_url="https://example.com"))
-            with self.assertRaises(SystemExit):
+            with mock.patch.object(
+                speakeragent, "_req", return_value={"speaker_id": "speaker_1"}
+            ), self.assertRaises(SystemExit):
                 speakeragent._cfg(self.args(speaker_id="speaker_2"))
+
+    def test_agency_key_requires_and_accepts_explicit_speaker(self):
+        key = "sa_test_abcdefghijklmnopqrstuvwxyz"
+        context = {
+            "authorization_model": "agency_key",
+            "partner_id": 7,
+            "speaker_selection_required": True,
+        }
+        with mock.patch.dict("os.environ", {"SPEAKERAGENT_API_KEY": key}, clear=True), mock.patch.object(
+            speakeragent, "_req", return_value=context
+        ):
+            with self.assertRaises(SystemExit):
+                speakeragent._cfg(self.args())
+            result = speakeragent._cfg(self.args(speaker_id="speaker_2"))
+        self.assertEqual(result, (speakeragent.TEST_API_URL, key, "speaker_2"))
+
+    def test_agency_key_can_take_speaker_from_environment(self):
+        key = "sa_test_abcdefghijklmnopqrstuvwxyz"
+        context = {"authorization_model": "agency_key", "partner_id": 7}
+        env = {
+            "SPEAKERAGENT_API_KEY": key,
+            "SPEAKERAGENT_SPEAKER_ID": "speaker_3",
+        }
+        with mock.patch.dict("os.environ", env, clear=True), mock.patch.object(
+            speakeragent, "_req", return_value=context
+        ):
+            result = speakeragent._cfg(self.args())
+        self.assertEqual(result[2], "speaker_3")
 
 
 class ValidationTests(unittest.TestCase):
@@ -126,6 +156,11 @@ class ValidationTests(unittest.TestCase):
             ["--speaker-id", "speaker_3", "podcasts"]
         )
         self.assertEqual(args.speaker_id, "speaker_3")
+
+    def test_speakers_list_parser(self):
+        args = speakeragent.build_parser().parse_args(["speakers", "list", "--json"])
+        self.assertEqual(args.speakers_cmd, "list")
+        self.assertTrue(args.json)
 
 
 class RedirectTests(unittest.TestCase):

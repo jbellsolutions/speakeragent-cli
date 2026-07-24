@@ -139,13 +139,31 @@ def _cfg(a, require_speaker=True):
         )
 
     if key_type in {"test", "live"}:
-        if supplied_url or supplied_speaker:
+        if supplied_url:
             _fail(
-                "Customer API keys select their SpeakerAgent API and speaker automatically; "
-                "remove --api-url and --speaker-id."
+                "Customer API keys select their SpeakerAgent API automatically; remove --api-url."
             )
         url = TEST_API_URL if key_type == "test" else LIVE_API_URL
         context = _req("GET", f"{url}/api/automation-keys/current", key)
+        if context.get("authorization_model") == "agency_key":
+            sid = supplied_speaker or os.getenv("SPEAKERAGENT_SPEAKER_ID")
+            if sid:
+                try:
+                    sid = _validate_id(sid, "speaker-id")
+                except argparse.ArgumentTypeError as error:
+                    _fail(str(error))
+            if require_speaker and not sid:
+                _fail(
+                    "This agency API key requires a speaker. Use --speaker-id or set "
+                    "SPEAKERAGENT_SPEAKER_ID. Run `speakeragent speakers list` to see available seats."
+                )
+            setattr(a, "_automation_context", context)
+            return url, key, sid
+        if supplied_speaker:
+            _fail(
+                "Personal customer API keys select their owned speaker automatically; "
+                "remove --speaker-id."
+            )
         sid = context.get("speaker_id")
         if not sid:
             _fail("The API key is valid but has no speaker assigned.")
@@ -408,7 +426,7 @@ def cmd_email(a):
 
 
 def cmd_auth_check(a):
-    url, key, sid = _cfg(a)
+    url, key, sid = _cfg(a, require_speaker=False)
     result = getattr(a, "_automation_context", None)
     if result is None:
         result = _req(
@@ -424,6 +442,28 @@ def cmd_auth_check(a):
         else "legacy (hidden)"
     )
     print(json.dumps(result, indent=2))
+
+
+def cmd_speakers_list(a):
+    url, key, _ = _cfg(a, require_speaker=False)
+    context = getattr(a, "_automation_context", {})
+    if context.get("authorization_model") != "agency_key":
+        _fail("`speakers list` requires an agency API key.")
+    result = _req("GET", f"{url}/api/automation-keys/current/speakers", key)
+    speakers = result.get("speakers", [])
+    if a.json:
+        print(json.dumps(result, indent=2))
+        return
+    if not speakers:
+        print("No active speaker seats are available.")
+        return
+    print(f"{'SPEAKER ID':<38} {'NAME':<30} STATUS")
+    for speaker in speakers:
+        print(
+            f"{str(speaker.get('speaker_id') or ''):<38} "
+            f"{str(speaker.get('full_name') or ''):<30} "
+            f"{str(speaker.get('status') or 'active')}"
+        )
 
 
 def cmd_profile_show(a):
@@ -616,7 +656,7 @@ def _add_speaker_override(parser):
         "--speaker-id",
         type=lambda value: _validate_id(value, "speaker-id"),
         default=argparse.SUPPRESS,
-        help=argparse.SUPPRESS,
+        help="agency key: select one authorized speaker seat",
     )
 
 
@@ -684,6 +724,12 @@ def build_parser():
     )
     _add_speaker_override(auth_check)
     auth_check.set_defaults(fn=cmd_auth_check)
+
+    speakers = sub.add_parser("speakers", help="list speakers available to an agency API key")
+    speakers_sub = speakers.add_subparsers(dest="speakers_cmd", required=True)
+    speakers_list = speakers_sub.add_parser("list", help="list active purchased speaker seats")
+    speakers_list.add_argument("--json", action="store_true")
+    speakers_list.set_defaults(fn=cmd_speakers_list)
 
     profile = sub.add_parser("profile", help="create, view, or edit a speaker profile")
     profile_sub = profile.add_subparsers(dest="profile_cmd", required=True)

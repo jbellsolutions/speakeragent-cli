@@ -15,7 +15,7 @@ install the latest approved CLI build from GitHub:
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install --upgrade --force-reinstall "git+https://github.com/jbellsolutions/speakeragent-cli.git@codex/cli-security-updates"
+python -m pip install --upgrade --force-reinstall "git+https://github.com/jbellsolutions/speakeragent-cli.git@cli-agency-release"
 speakeragent --help
 ```
 
@@ -33,7 +33,16 @@ speakeragent auth check
 ```
 
 Stop if authentication fails. The key selects the approved test or live API and its owned speaker
-automatically; do not request or override an API URL or speaker ID.
+automatically for personal keys; do not request or override an API URL.
+
+For an agency key, list the active paid seats and require the user to select one:
+
+```bash
+speakeragent speakers list
+speakeragent podcasts --speaker-id <speaker-id> --json
+```
+
+Never guess a speaker ID or attempt to use a speaker that is not returned by `speakers list`.
 
 ## Choose the workflow
 
