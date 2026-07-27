@@ -533,8 +533,15 @@ def _wait_for_scout(url, key, sid, poll_interval, timeout):
 
 def cmd_matches_generate(a):
     url, key, sid = _cfg(a)
+    context = getattr(a, "_automation_context", {})
+    target = (
+        f"agency speaker '{sid}'"
+        if context.get("authorization_model") == "agency_key"
+        else f"speaker '{sid}'"
+    )
     _confirm(
-        "Generating matches consumes one monthly scout run and starts background work.",
+        f"Generate new matches for {target}? This consumes one monthly scout run "
+        "and starts background work.",
         a.yes,
     )
     request_url = _with_query(
@@ -763,7 +770,11 @@ def build_parser():
     matches_generate.add_argument("--wait", action="store_true")
     matches_generate.add_argument("--poll-interval", type=_positive_int, default=5)
     matches_generate.add_argument("--timeout", type=_positive_int, default=900)
-    matches_generate.add_argument("--yes", action="store_true", help="confirm quota consumption")
+    matches_generate.add_argument(
+        "--yes",
+        action="store_true",
+        help="confirm scout-run consumption without an interactive prompt",
+    )
     _add_speaker_override(matches_generate)
     matches_generate.set_defaults(fn=cmd_matches_generate)
     matches_status = matches_sub.add_parser("status", help="show podcast scout progress")

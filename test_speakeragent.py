@@ -163,6 +163,73 @@ class ValidationTests(unittest.TestCase):
         self.assertTrue(args.json)
 
 
+class ScoutRunConfirmationTests(unittest.TestCase):
+    def generate_args(self, **overrides):
+        values = {
+            "yes": False,
+            "persona_id": None,
+            "wait": False,
+            "poll_interval": 5,
+            "timeout": 900,
+        }
+        values.update(overrides)
+        return SimpleNamespace(**values)
+
+    def test_interactive_confirmation_requires_exact_yes(self):
+        with mock.patch.object(speakeragent.sys.stdin, "isatty", return_value=True), mock.patch(
+            "builtins.input", return_value="no"
+        ), self.assertRaises(SystemExit) as raised:
+            speakeragent._confirm("Consumes one scout run.")
+        self.assertIn("Cancelled", str(raised.exception))
+
+    def test_non_interactive_run_requires_yes_flag(self):
+        with mock.patch.object(speakeragent.sys.stdin, "isatty", return_value=False), self.assertRaises(
+            SystemExit
+        ) as raised:
+            speakeragent._confirm("Consumes one scout run.")
+        self.assertIn("--yes", str(raised.exception))
+
+    def test_yes_flag_skips_prompt(self):
+        with mock.patch("builtins.input") as prompt:
+            speakeragent._confirm("Consumes one scout run.", yes=True)
+        prompt.assert_not_called()
+
+    def test_personal_and_agency_runs_share_confirmation_gate(self):
+        cases = [
+            ("automation_key", "speaker_1", "speaker 'speaker_1'"),
+            ("agency_key", "agency_speaker_1", "agency speaker 'agency_speaker_1'"),
+        ]
+        for authorization_model, speaker_id, expected_target in cases:
+            with self.subTest(authorization_model=authorization_model):
+                args = self.generate_args()
+
+                def config(value):
+                    value._automation_context = {
+                        "authorization_model": authorization_model,
+                    }
+                    return "https://api.example.com", "key", speaker_id
+
+                with mock.patch.object(speakeragent, "_cfg", side_effect=config), mock.patch.object(
+                    speakeragent, "_confirm"
+                ) as confirm, mock.patch.object(
+                    speakeragent, "_req", return_value={"status": "started"}
+                ) as request:
+                    speakeragent.cmd_matches_generate(args)
+                self.assertIn(expected_target, confirm.call_args.args[0])
+                self.assertIn("one monthly scout run", confirm.call_args.args[0])
+                request.assert_called_once()
+
+    def test_declined_confirmation_never_starts_scout(self):
+        args = self.generate_args()
+        with mock.patch.object(
+            speakeragent, "_cfg", return_value=("https://api.example.com", "key", "speaker_1")
+        ), mock.patch.object(
+            speakeragent, "_confirm", side_effect=SystemExit("Cancelled.")
+        ), mock.patch.object(speakeragent, "_req") as request, self.assertRaises(SystemExit):
+            speakeragent.cmd_matches_generate(args)
+        request.assert_not_called()
+
+
 class RedirectTests(unittest.TestCase):
     def test_blocks_cross_origin_redirect(self):
         handler = speakeragent._SameOriginRedirectHandler()
